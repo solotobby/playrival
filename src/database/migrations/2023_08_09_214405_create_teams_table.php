@@ -7,7 +7,9 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * * Run the migrations.  php artisan migrate --path=/database/migrations/2023_08_09_214405_create_teams_table.php
+     * 
+     *  * * Run the migrations.  php artisan migrate:refresh --path=/database/migrations/2023_08_09_214405_create_teams_table.php
      */
     public function up(): void
     {
@@ -15,6 +17,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('user_id');
             $table->string('name');
+            $table->text('logo')->nullable();
             $table->string('team_type')->nullable();
             $table->timestamps();
         });

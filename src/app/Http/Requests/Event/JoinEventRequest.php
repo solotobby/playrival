@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\Event;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class StoreEventRequest extends FormRequest
+class JoinEventRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -22,14 +22,8 @@ class StoreEventRequest extends FormRequest
     public function rules() : array
     {
         return [
-            'name' => 'required|string',
-            'start_date' => 'required|string',
-            'end_date' => 'required|date',
-            'type_id' => 'required|numeric',
-            'is_home_away'=>'required|boolean',
-            'is_owner_participate'=>'required|boolean',
-            'banner' => 'required|string',
-            'number_of_teams' => 'required|numeric',
+            'code' => 'required|string',
+            'team_id'=>'required|numeric'
         ];
     }
 }

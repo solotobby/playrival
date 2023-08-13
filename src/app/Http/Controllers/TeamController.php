@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\StoreTeamRequest;
-use App\Http\Requests\UpdateTeamRequest;
+use App\Http\Requests\Team\StoreTeamRequest;
+use App\Http\Requests\Team\UpdateTeamRequest;
 use App\Models\Team;
+use App\Services\Team\CreateService;
+use App\Services\Team\ListService;
+use Illuminate\Support\Facades\Auth;
 
 class TeamController extends Controller
 {
@@ -13,15 +16,14 @@ class TeamController extends Controller
      */
     public function index()
     {
-        //
-    }
+        $user = Auth::user();
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
+        try{
+           $events= (new ListService($user->id))->run();
+        } catch (\Exception $exception) {
+            return response()->json(['status' => false,  'error'=>$exception->getMessage(), 'message' => 'Error processing request'], 500);
+        }
+        return response()->json(['status' => true, 'message' => 'Events List', 'data' =>  $events], 200);
     }
 
     /**
@@ -29,7 +31,17 @@ class TeamController extends Controller
      */
     public function store(StoreTeamRequest $request)
     {
-        //
+        $validated = $request->validated();
+        $user = Auth::user();
+        try {
+            $new_event = (new CreateService($validated, $user))->run();
+            return $new_event;
+        } catch (\Exception $exception) {
+            return response()->json(['status' => false,  'error'=>$exception->getMessage(), 'message' => 'Error processing request'], 500);
+        }
+
+        return response()->json(['status' => true, 'message' => 'New Event created', 'data' =>  $new_event], 201);
+       
     }
 
     /**

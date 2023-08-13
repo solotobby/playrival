@@ -5,9 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class EventUser extends Model
+class EventTeam extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['event_id', 'team_id', 'is_approved'];
+    protected $fillable = ['event_id', 'user_id', 'team_id', 'is_approved'];
 }
