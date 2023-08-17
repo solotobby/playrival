@@ -23,7 +23,7 @@ class JoinEventRequest extends FormRequest
     {
         return [
             'code' => 'required|string',
-            'team_id'=>'required|numeric'
+            'team_id'=>'required|numeric|exists:teams,id'
         ];
     }
 }

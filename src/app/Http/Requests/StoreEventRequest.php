@@ -27,9 +27,10 @@ class StoreEventRequest extends FormRequest
             'end_date' => 'required|date',
             'type_id' => 'required|numeric',
             'is_home_away'=>'required|boolean',
-            'is_owner_participate'=>'required|boolean',
             'banner' => 'required|string',
             'number_of_teams' => 'required|numeric',
+            'is_owner_participate'=>'required|boolean',
+            'team_id' => 'required_if:is_owner_participate,==,true|nullable|numeric|exists:teams,id',
         ];
     }
 }

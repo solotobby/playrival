@@ -46,4 +46,14 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+
+    public function teams()
+    {
+        return $this->hasMany(Team::class);
+    }
+    public function userTeamsIds()
+    {
+        return $this->hasMany(Team::class)->pluck('id')->toArray();
+    }
 }
