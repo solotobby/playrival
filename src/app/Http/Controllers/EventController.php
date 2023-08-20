@@ -37,11 +37,11 @@ class EventController extends Controller
     public function store(StoreEventRequest $request)
     {
         $validated = $request->validated();
-        dd($validated);
+        // dd($validated);
         $user = Auth::user();
         try {
             $new_event = (new CreateService($validated, $user))->run();
-            return $new_event;
+            
         } catch (\Exception $exception) {
             return response()->json(['status' => false,  'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
         }

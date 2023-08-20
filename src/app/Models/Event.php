@@ -11,9 +11,9 @@ class Event extends Model
 
     protected $fillable = ['user_id', 'name', 'banner', 'is_start', 'game_type_id', 'is_owner_participate','is_home_away', 'code', 'number_of_teams', 'start_date', 'end_date'];
 
-    protected $appends = [
-        'teams'
-    ];
+    // protected $appends = [
+    //     'teams'
+    // ];
 
     public function teams()
     {
