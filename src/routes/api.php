@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EventController;
+use App\Http\Controllers\MatchesController;
 use App\Http\Controllers\TeamController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -32,14 +33,15 @@ Route::prefix('tornament')->middleware('auth:api')->group(function () {
     Route::get('/', [EventController::class,'index'])->name('get.tornament');
     Route::post('/join', [EventController::class,'join'])->name('join.tornament');
     Route::get('/{id}/start', [EventController::class,'start'])->name('start.tornament');
-   
 });
 
 
 Route::prefix('team')->middleware('auth:api')->group(function () {
     Route::post('/', [TeamController::class,'store'])->name('create.team');
     Route::get('/', [TeamController::class,'index'])->name('get.team');
-   
 });
 
-
+Route::prefix('match')->middleware('auth:api')->group(function () {
+    Route::get('/', [MatchesController::class,'index'])->name('get.matches');
+    Route::patch('/{id}', [MatchesController::class,'update'])->name('update.matches');
+});

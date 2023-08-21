@@ -22,7 +22,6 @@ class EventController extends Controller
     public function index()
     {
         $user = Auth::user();
-
         try {
             $events = (new ListService($user->id))->run();
         } catch (\Exception $exception) {
@@ -40,6 +39,7 @@ class EventController extends Controller
         // dd($validated);
         $user = Auth::user();
         try {
+
             $new_event = (new CreateService($validated, $user))->run();
             
         } catch (\Exception $exception) {
@@ -66,7 +66,9 @@ class EventController extends Controller
             }
             $team = Team::findorfail($validated['team_id']);
             $new_event = (new JoinService($event, $team, $user))->run();
+
             return $new_event;
+
         } catch (\Exception $exception) {
             return response()->json(['status' => false,  'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
         }
@@ -85,12 +87,14 @@ class EventController extends Controller
             $teams = $event->teams->pluck('team')->toArray();
 
             if ($event->game_type_id == 1) {
+
                 $schedule = $this->generateRoundRobinSchedule($teams);
                 $matches = (new MatchCreateService($schedule ,$event))->run();
 
             } else  if ($event->game_type_id == 2) {
                 
             } else  if ($event->game_type_id == 3) {
+
             }
             // check tonament type and build matched
         } catch (\Exception $exception) {

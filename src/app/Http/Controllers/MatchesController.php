@@ -13,7 +13,14 @@ class MatchesController extends Controller
      */
     public function index()
     {
-        //
+        try{
+            $matches = [];
+            $matches =  Matches::with(['event'])->orderBy('created_at', 'asc')->get();
+
+        }catch(\Exception $exception) {
+            return response()->json(['status' => false,  'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
+        }
+            return response()->json(['status' => true, 'message' => 'Matches', 'data' =>  $matches], 200);
     }
 
     /**
@@ -51,9 +58,20 @@ class MatchesController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateMatchesRequest $request, Matches $matches)
+    public function update(UpdateMatchesRequest $request, $id)
     {
-        //
+        $validated = $request->validated();
+        try{
+            $matches = Matches::where('id', $id)->firstOrFail();
+            $updatedMatch = $matches->update([
+                'home_team_goals' => $validated['home_team_goals'],
+                'away_team_goals' => $validated['away_team_goals'],
+                'is_completed' => $validated['is_completed']
+            ]);
+        }catch(\Exception $exception){
+            return response()->json(['status' => false,  'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
+        }
+        return response()->json(['status' => true, 'message' => 'Updated Match', 'data' =>  $matches], 200);
     }
 
     /**
