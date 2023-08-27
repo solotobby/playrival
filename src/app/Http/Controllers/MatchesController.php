@@ -14,6 +14,7 @@ class MatchesController extends Controller
     public function index()
     {
         try{
+            
             $matches = [];
             $matches =  Matches::with(['event'])->orderBy('created_at', 'asc')->get();
 
