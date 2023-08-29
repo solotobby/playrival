@@ -92,6 +92,8 @@ class EventController extends Controller
                 $matches = (new MatchCreateService($schedule ,$event))->run();
 
             } else  if ($event->game_type_id == 2) {
+                $schedule = $this->generateSeasonMatches($teams);
+                $matches = (new MatchCreateService($schedule, $event))->run();
                 
             } else  if ($event->game_type_id == 3) {
 

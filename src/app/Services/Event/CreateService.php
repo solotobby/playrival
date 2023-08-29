@@ -24,11 +24,11 @@ class CreateService implements BaseServiceInterface
             $new_post = Event::create([
                 'user_id' => $this->user->id,
                 'name' => $this->data['name'],
-                'game_type_id'=> 1,
+                'game_type_id'=> $this->data['type_id'],//1,
                 'is_start' => false,
                 'start_date' => $this->data['start_date'],
                 'end_date' => $this->data['end_date'],
-                'type_id' => $this->data['type_id'],
+                //'type_id' => $this->data['type_id'],
                 'code' => $this->generateCode(10),
                 'is_home_away' => $this->data['is_home_away'],
                 'is_owner_participate' => $this->data['is_owner_participate'],
