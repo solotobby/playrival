@@ -49,6 +49,17 @@ class EventController extends Controller
         return response()->json(['status' => true, 'message' => 'New Event created', 'data' =>  $new_event], 201);
     }
 
+    public function teams($id){
+        try {
+            $event = Event::with('teams')->findorfail($id);
+            $teams = $event->teams;
+        } catch (\Exception $exception) {
+            return response()->json(['status' => false,  'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
+        }
+
+        return $teams;
+    }
+
     public function join(JoinEventRequest $request)
     {
         $validated = $request->validated();
@@ -85,6 +96,9 @@ class EventController extends Controller
         try {
             $event = Event::with('teams.team')->findorfail($id);
             $teams = $event->teams->pluck('team')->toArray();
+            if($event->is_start){
+                return response()->json(['status' => false, 'message' => 'This has already started'], 403);
+            }
 
             if ($event->game_type_id == 1) {
 
@@ -98,12 +112,14 @@ class EventController extends Controller
             } else  if ($event->game_type_id == 3) {
 
             }
+            $event->is_start=true;
+            $event->save();
             // check tonament type and build matched
         } catch (\Exception $exception) {
             return response()->json(['status' => false,  'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
         }
 
-        return (array) $teams;
+        return (array) $matches;
     }
 
     public function generateRoundRobinSchedule($teams)
@@ -147,6 +163,94 @@ class EventController extends Controller
     }
 
 
+    public function info($id){
+
+        $result = [];
+        $fixture =[];
+
+        try {
+            $event = Event::with('matches')->findorfail($id);
+            $matches = $event->matches;
+
+            foreach ($matches as $match) {
+                if($match->is_completed){
+                    array_push($result, $match);
+                }else{
+                    array_push($fixture, $match);
+                }
+            }
+
+            $table = $this->generateLeagueTable($matches);
+
+
+
+
+        } catch (\Exception $exception) {
+            return response()->json(['status' => false,  'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
+        }
+
+       $data = ["table" =>  $table, "result" =>  $result, "fixture" =>  $fixture];
+        return response()->json(['status' => false,  'data' => $data, 'message' => 'Error processing request'], 200);
+
+    
+    }
+
+
+  public  function generateLeagueTable($matches)
+        {       
+    // Initialize an empty array to hold team data
+    $teams = [];
+
+    // Loop through the matches
+    foreach ($matches as $match) {
+        // Determine the home and away teams
+        $homeTeam = $match->home_team;
+        $awayTeam = $match->away_team;
+
+        // Determine the goals scored by each team
+        $homeGoals = $match->home_team_goals;
+        $awayGoals = $match->away_team_goals;
+
+        // Determine if the match is a result or a fixture
+        $status = $match->is_completed;
+
+        // Update team data based on match result
+        if ($status) {
+            if (!isset($teams[$homeTeam])) {
+                $teams[$homeTeam] = new Team(['name' => $homeTeam]);
+            }
+            if (!isset($teams[$awayTeam])) {
+                $teams[$awayTeam] = new Team(['name' => $awayTeam]);
+            }
+
+            // Update team statistics
+            $teams[$homeTeam]->goals_for += $homeGoals;
+            $teams[$homeTeam]->goals_against += $awayGoals;
+            $teams[$awayTeam]->goals_for += $awayGoals;
+            $teams[$awayTeam]->goals_against += $homeGoals;
+
+            // Update points based on match result (you'll need to define your points rules)
+            if ($homeGoals > $awayGoals) {
+                $teams[$homeTeam]->points += 3;
+            } elseif ($homeGoals < $awayGoals) {
+                $teams[$awayTeam]->points += 3;
+            } else {
+                $teams[$homeTeam]->points += 1;
+                $teams[$awayTeam]->points += 1;
+            }
+        }
+    }
+
+    // Sort teams based on points and other criteria (e.g., goal difference)
+    usort($teams, function ($a, $b) {
+        if ($a->points === $b->points) {
+            return ($b->goals_for - $b->goals_against) - ($a->goals_for - $a->goals_against);
+        }
+        return $b->points - $a->points;
+    });
+
+    return $teams;
+}
 
     /*
     

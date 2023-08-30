@@ -25,6 +25,10 @@ class Event extends Model
         return $this->teams()->pluck('user_id');
     }
     
+    public function matches()
+    {
+        return $this->hasMany(Matches::class);
+    }
 
     // public function teamsArray()
     // {
