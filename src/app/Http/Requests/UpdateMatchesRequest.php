@@ -11,7 +11,7 @@ class UpdateMatchesRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -22,7 +22,9 @@ class UpdateMatchesRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
+            'away_team_goals' => 'required|numeric',
+            'home_team_goals' => 'required|numeric',
+            'is_completed' => 'required|numeric',
         ];
     }
 }
