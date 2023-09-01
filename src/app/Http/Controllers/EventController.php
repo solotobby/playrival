@@ -6,12 +6,14 @@ use App\Http\Requests\Event\JoinEventRequest;
 use App\Http\Requests\StoreEventRequest;
 use App\Http\Requests\UpdateEventRequest;
 use App\Models\Event;
+use App\Models\Matches;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\Event\CreateService;
 use App\Services\Event\JoinService;
 use App\Services\Event\ListService;
 use App\Services\Match\CreateService as MatchCreateService;
+use GuzzleHttp\Promise\Create;
 use Illuminate\Support\Facades\Auth;
 
 class EventController extends Controller
@@ -41,7 +43,6 @@ class EventController extends Controller
         try {
 
             $new_event = (new CreateService($validated, $user))->run();
-            
         } catch (\Exception $exception) {
             return response()->json(['status' => false,  'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
         }
@@ -49,7 +50,8 @@ class EventController extends Controller
         return response()->json(['status' => true, 'message' => 'New Event created', 'data' =>  $new_event], 201);
     }
 
-    public function teams($id){
+    public function teams($id)
+    {
         try {
             $event = Event::with('teams')->findorfail($id);
             $teams = $event->teams;
@@ -66,20 +68,19 @@ class EventController extends Controller
         $user = Auth::user();
 
         try {
-            if(!in_array($validated['team_id'], $user->userTeamsIds())){
+            if (!in_array($validated['team_id'], $user->userTeamsIds())) {
                 return response()->json(['status' => false, 'message' => 'You are do not own this team'], 403);
             }
 
             $event = Event::where("code", $validated['code'])->first();
             $eventUsers = $event->teamsIds()->toArray();
-            if(in_array($user->id, $eventUsers)){
+            if (in_array($user->id, $eventUsers)) {
                 return response()->json(['status' => false, 'message' => 'You are already part of this league'], 403);
             }
             $team = Team::findorfail($validated['team_id']);
             $new_event = (new JoinService($event, $team, $user))->run();
 
             return $new_event;
-
         } catch (\Exception $exception) {
             return response()->json(['status' => false,  'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
         }
@@ -94,32 +95,49 @@ class EventController extends Controller
     public function start($id)
     {
         try {
-            $event = Event::with('teams.team')->findorfail($id);
+            $event = Event::with('teams.team', 'matches')->findorfail($id);
             $teams = $event->teams->pluck('team')->toArray();
             if($event->is_start){
                 return response()->json(['status' => false, 'message' => 'This has already started'], 403);
             }
 
             if ($event->game_type_id == 1) {
-
+                $numTeams = count($teams);
+                if ($numTeams > 3) {
+                    return response()->json(['status' => false, 'message' => 'This of teams in this tornament is not enough for a tornament'], 403);
+                }
                 $schedule = $this->generateRoundRobinSchedule($teams);
-                $matches = (new MatchCreateService($schedule ,$event))->run();
+                $schedule = (new MatchCreateService($schedule ,$event))->run();
+                $event->is_start=true;
+                $event->save();
 
             } else  if ($event->game_type_id == 2) {
-                $schedule = $this->generateSeasonMatches($teams);
-                $matches = (new MatchCreateService($schedule, $event))->run();
+                 // Ensure the number of teams is a power of 2
+                    $numTeams = count($teams);
+                    if (!($numTeams && (($numTeams & ($numTeams - 1)) == 0))) {
+                        return response()->json(['status' => false, 'message' => 'This of teams in this tornament is not enough for a tornament'], 403);
+                    }
+                $res = $this->handleKnockOutTornament($teams,  $event);
+                if($res->status){
+                 if($res->teams == 2){
+                    $event->is_start=true;
+                    $event->save();
+                 }
                 
+                }else{
+                    return response()->json(['status' => false,   'message' => $res->message], 500);
+                }
+
             } else  if ($event->game_type_id == 3) {
 
             }
-            $event->is_start=true;
-            $event->save();
-            // check tonament type and build matched
+            
+
         } catch (\Exception $exception) {
             return response()->json(['status' => false,  'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
         }
 
-        return (array) $matches;
+        return response()->json(['status' => true,  'message' => 'Started'], 200);
     }
 
     public function generateRoundRobinSchedule($teams)
@@ -163,232 +181,187 @@ class EventController extends Controller
     }
 
 
-    public function info($id){
+    public function info($id)
+    {
 
         $result = [];
-        $fixture =[];
+        $fixture = [];
 
         try {
             $event = Event::with('matches')->findorfail($id);
             $matches = $event->matches;
 
             foreach ($matches as $match) {
-                if($match->is_completed){
+                if ($match->is_completed) {
                     array_push($result, $match);
-                }else{
+                } else {
                     array_push($fixture, $match);
                 }
             }
 
-            $table = $this->generateLeagueTable($matches);
+            if ($event->game_type_id == 1) {
+                $table = $this->generateLeagueTable($matches);
+            } else  if ($event->game_type_id == 2) {
+                $table = $matches->groupBy('tag');
 
-
+            }
 
 
         } catch (\Exception $exception) {
             return response()->json(['status' => false,  'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
         }
 
-       $data = ["table" =>  $table, "result" =>  $result, "fixture" =>  $fixture];
+        $data = ["table" =>  $table, "result" =>  $result, "fixture" =>  $fixture];
         return response()->json(['status' => false,  'data' => $data, 'message' => 'Error processing request'], 200);
-
-    
     }
 
 
-  public  function generateLeagueTable($matches)
-        {       
-    // Initialize an empty array to hold team data
-    $teams = [];
-
-    // Loop through the matches
-    foreach ($matches as $match) {
-        // Determine the home and away teams
-        $homeTeam = $match->home_team;
-        $awayTeam = $match->away_team;
-
-        // Determine the goals scored by each team
-        $homeGoals = $match->home_team_goals;
-        $awayGoals = $match->away_team_goals;
-
-        // Determine if the match is a result or a fixture
-        $status = $match->is_completed;
-
-        // Update team data based on match result
-        if ($status) {
-            if (!isset($teams[$homeTeam])) {
-                $teams[$homeTeam] = new Team(['name' => $homeTeam]);
-            }
-            if (!isset($teams[$awayTeam])) {
-                $teams[$awayTeam] = new Team(['name' => $awayTeam]);
-            }
-
-            // Update team statistics
-            $teams[$homeTeam]->goals_for += $homeGoals;
-            $teams[$homeTeam]->goals_against += $awayGoals;
-            $teams[$awayTeam]->goals_for += $awayGoals;
-            $teams[$awayTeam]->goals_against += $homeGoals;
-
-            // Update points based on match result (you'll need to define your points rules)
-            if ($homeGoals > $awayGoals) {
-                $teams[$homeTeam]->points += 3;
-            } elseif ($homeGoals < $awayGoals) {
-                $teams[$awayTeam]->points += 3;
-            } else {
-                $teams[$homeTeam]->points += 1;
-                $teams[$awayTeam]->points += 1;
-            }
-        }
-    }
-
-    // Sort teams based on points and other criteria (e.g., goal difference)
-    usort($teams, function ($a, $b) {
-        if ($a->points === $b->points) {
-            return ($b->goals_for - $b->goals_against) - ($a->goals_for - $a->goals_against);
-        }
-        return $b->points - $a->points;
-    });
-
-    return $teams;
-}
-
-    /*
-    
-    **************************************
-    *
-    *
-    *
-    *
-    *
-    */
-    public function   generateSeasonMatches($teams)
+    public  function generateLeagueTable($matches)
     {
+        // Initialize an empty array to hold team data
+        $teams = [];
 
-        $rounds = 1;
-        $roundMatches = [];
-        foreach ($teams as $homeTeam) {
-            $matches = [];
-            foreach ($teams as $awayTeam) {
-                if ($homeTeam !== $awayTeam) {
-                    $match = [
-                        'home' => $homeTeam,
-                        'away' => $awayTeam,
-                    ];
-                    $matches[] = $match;
+        // Loop through the matches
+        foreach ($matches as $match) {
+            // Determine the home and away teams
+            $homeTeam = $match->home_team;
+            $awayTeam = $match->away_team;
+
+            // Determine the goals scored by each team
+            $homeGoals = $match->home_team_goals;
+            $awayGoals = $match->away_team_goals;
+
+            // Determine if the match is a result or a fixture
+            $status = $match->is_completed;
+
+            // Update team data based on match result
+            if ($status) {
+                if (!isset($teams[$homeTeam])) {
+                    $teams[$homeTeam] = new Team(['name' => $homeTeam]);
+                }
+                if (!isset($teams[$awayTeam])) {
+                    $teams[$awayTeam] = new Team(['name' => $awayTeam]);
+                }
+
+                // Update team statistics
+                $teams[$homeTeam]->goals_for += $homeGoals;
+                $teams[$homeTeam]->goals_against += $awayGoals;
+                $teams[$awayTeam]->goals_for += $awayGoals;
+                $teams[$awayTeam]->goals_against += $homeGoals;
+
+                // Update points based on match result (you'll need to define your points rules)
+                if ($homeGoals > $awayGoals) {
+                    $teams[$homeTeam]->points += 3;
+                } elseif ($homeGoals < $awayGoals) {
+                    $teams[$awayTeam]->points += 3;
+                } else {
+                    $teams[$homeTeam]->points += 1;
+                    $teams[$awayTeam]->points += 1;
                 }
             }
-
-            $roundMatches[$rounds] = $matches;
-            $rounds++;
         }
 
-        return $roundMatches;
-    }
-
-    function generateKnockoutSchedule($teams)
-    {
-        $schedule = [];
-        $totalTeams = count($teams);
-
-        // Ensure the number of teams is a power of 2
-        $powerOfTwo = pow(2, ceil(log($totalTeams, 2)));
-        $requiredByes = $powerOfTwo - $totalTeams;
-
-        // Add bye teams if necessary
-        $teams = array_merge($teams, array_fill(0, $requiredByes, 'BYE'));
-
-        // Initialize the first round with matches
-        $schedule[] = array_chunk($teams, 2);
-
-        while (count($teams) > 1) {
-            $roundMatches = [];
-            foreach ($schedule[count($schedule) - 1] as $match) {
-                $winner = $match[0];
-                $roundMatches[] = [$winner];
+        // Sort teams based on points and other criteria (e.g., goal difference)
+        usort($teams, function ($a, $b) {
+            if ($a->points === $b->points) {
+                return ($b->goals_for - $b->goals_against) - ($a->goals_for - $a->goals_against);
             }
-            $schedule[] = array_chunk($roundMatches, 2);
-            $teams = array_column($roundMatches, 0);
-        }
+            return $b->points - $a->points;
+        });
 
-        return $schedule;
+        return $teams;
     }
 
-    public function  generateLeagueSchedule($teams)
+
+
+
+    public function handleKnockOutTornament($teams,  $event)
     {
-        $totalTeams = count($teams);
-        $totalRounds = $totalTeams - 1;
 
-        $schedule = [];
+        $db_matches = $event->matches;
+        $team_count = count($teams);
+        $last_match = count($db_matches) > 1 ?  $db_matches[count($db_matches) - 1] : null;
 
-        for ($round = 1; $round <= $totalRounds; $round++) {
-            $roundMatches = [];
+        // dd($db_matches,  $team_count,  $last_match );
 
-            for ($match = 0; $match < $totalTeams / 2; $match++) {
-                $homeTeam = $teams[$match];
-                $awayTeam = $teams[$totalTeams - 1 - $match];
+        if ($last_match == null) {
+            // Shuffle the teams to randomize matchups
+            shuffle($teams);
+            // Generate the first round matches (quarter-finals)
+            $matches = $this->genrateSimpleMatches($teams);
+            $schedule = $this->CreateMatches($matches, $event, "Round 1");
+            return (object)['status' => true, 'teams'=> $team_count,  'data' => $schedule];
+         
+        }else{
+           
+            $match_by_rounds = $db_matches->groupBy('tag');
+            $last_match = $db_matches->last();
+            $last_round = $last_match->tag;
+            $last_round_matches = $match_by_rounds[$last_round];
 
-                $matchInfo = [
-                    'home' => $homeTeam,
-                    'away' => $awayTeam,
-                ];
+            $is_complete = $last_round_matches->pluck('is_completed')->toArray();
 
-                $roundMatches[] = $matchInfo;
+             if (in_array(0,  $is_complete)){
+            
+                return (object)['status' => false, 'message'=>"All games in the current round is not completed" ];
+             }
+
+            $next_round_team=[];
+
+            foreach ($last_round_matches as $roundMatches) {
+    
+                if ($roundMatches->home_team_goals > $roundMatches->away_team_goals) {
+                       $ht =  collect($teams)->firstWhere('id', $roundMatches->home_team_id );
+                       array_push($next_round_team, $ht);
+                }else{
+                    $at =  collect($teams)->firstWhere('id', $roundMatches->away_team_id );
+                    array_push($next_round_team, $at);
+                }  
             }
-
-            $schedule[$round] = $roundMatches;
-
-            // Rotate teams for the next round
-            $lastTeam = array_pop($teams);
-            array_splice($teams, 1, 0, $lastTeam);
+            
+            $matches = $this->genrateSimpleMatches($next_round_team);
+            $schedule = $this->CreateMatches($matches, $event, "Round ". explode(' ', $last_round)[1] + 1);
+         
+            return (object)['status' => true, 'teams'=> count($next_round_team),  'data' => $schedule];
         }
-
-        return $schedule;
     }
-
-
-
-    public function generateMatchSchedule($teams)
-    {
-        $totalTeams = count($teams);
-        if ($totalTeams % 2 !== 0) {
-            // If odd number of teams, add a bye team
-            array_push($teams, 'BYE');
-            $totalTeams++;
-        }
-
-        $totalRounds = $totalTeams - 1;
-        $matchesPerRound = $totalTeams / 2;
-
+    public function genrateSimpleMatches($teams){
         $matches = [];
-
-        for ($round = 1; $round <= $totalRounds; $round++) {
-            $roundMatches = [];
-
-            for ($match = 0; $match < $matchesPerRound; $match++) {
-                $home = $teams[$match];
-                $away = $teams[$totalTeams - 1 - $match];
-
-                if ($home !== 'BYE' && $away !== 'BYE') {
-                    $matchInfo = [
-                        'home' => $home,
-                        'away' => $away,
-                    ];
-                    $roundMatches[] = $matchInfo;
-                }
-            }
-
-            $matches[] = $roundMatches;
-
-            // Rotate teams for the next round
-            $temp = $teams[1];
-            for ($i = 1; $i < $totalTeams - 1; $i++) {
-                $teams[$i] = $teams[$i + 1];
-            }
-            $teams[$totalTeams - 1] = $temp;
+        $team_count = count($teams);
+        for ($i = 0; $i < $team_count; $i += 2) {
+            $matches[] = [
+                'home' => $teams[$i],
+                'away' => $teams[$i + 1],
+            ];
         }
 
-        return $matches;
+        return $matches ;
     }
 
-    
+    public function CreateMatches($matches, $event, $round)
+    {
+
+
+        $ready = [];
+
+        foreach ($matches as $match) {
+            $one = [
+                'event_id' => $event->id,
+                'home_team' => $match['home']['name'],
+                'home_team_id' => $match['home']['id'],
+                'away_team' => $match['away']['name'],
+                'away_team_id' => $match['away']['id'],
+                'home_team_goals' => 0,
+                'away_team_goals' => 0,
+                'is_completed' => false,
+                'tag' => $round,
+
+            ];
+            Matches::create($one);
+            // array_push($ready,$one );
+        }
+        //  dd( $ready);
+        return true;
+    }
+
 }
