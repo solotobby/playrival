@@ -67,17 +67,22 @@ class EventController extends Controller
         $validated = $request->validated();
         $user = Auth::user();
 
+       // dd($user);
+
         try {
-            if (!in_array($validated['team_id'], $user->userTeamsIds())) {
-                return response()->json(['status' => false, 'message' => 'You are do not own this team'], 403);
-            }
+            // if (!in_array($validated['team_id'], $user->userTeamsIds())) {
+            //     return response()->json(['status' => false, 'message' => 'You are do not own this team'], 403);
+            // }
 
             $event = Event::where("code", $validated['code'])->first();
             $eventUsers = $event->teamsIds()->toArray();
+
             if (in_array($user->id, $eventUsers)) {
                 return response()->json(['status' => false, 'message' => 'You are already part of this league'], 403);
             }
-            $team = Team::findorfail($validated['team_id']);
+            $team = Team::where('user_id', $user->id)->latest()->get()[0];
+
+           // $team = Team::findorfail($validated['team_id']);
             $new_event = (new JoinService($event, $team, $user))->run();
 
             return $new_event;
@@ -281,8 +286,6 @@ class EventController extends Controller
         $db_matches = $event->matches;
         $team_count = count($teams);
         $last_match = count($db_matches) > 1 ?  $db_matches[count($db_matches) - 1] : null;
-
-        // dd($db_matches,  $team_count,  $last_match );
 
         if ($last_match == null) {
             // Shuffle the teams to randomize matchups
