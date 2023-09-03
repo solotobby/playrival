@@ -82,11 +82,36 @@ class AuthController extends Controller
              $team = Team::where('user_id', $user->id)->first();
              $team->name = $validated['name'];
              $team->save();
-            // $user = User::where('id', $user->id)->first();
-            // $user->username = $validated['username'];
-            // $user->phone = $validated['phone'];
-            // $user->save();
+            
             return response()->json(['status' => true, 'data' => $team,  'message' => 'Bio updated successfully'], 201);
+        }catch(Exception $exception){
+            return response()->json(['status' => false,  'error'=>$exception->getMessage(), 'message' => 'Error processing request'], 500);
+        }
+
+    }
+
+    public function changePassword(Request $request){
+        $validated = $request->validate([
+            'old_password' => 'required',
+            'password' => 'required|between:4,32|confirmed',
+        ]);
+
+        try{
+            $user = Auth::user();
+            $info = User::where('id', $user->id)->first();
+            if($info){
+            
+                if(Hash::check(trim($validated['old_password']), $info->password)){
+                    $info->password = $validated['password'];
+                    $info->save();
+                    return response()->json(['status' => true, 'data' => $info,  'message' => 'Password Changed'], 201);
+                }else{
+                    return response(['message' => 'Email or Password Incorrect'], 401);  
+                }
+            }else{
+                return response(['message' => 'Email or Password Incorrect'], 401);  
+            }
+
         }catch(Exception $exception){
             return response()->json(['status' => false,  'error'=>$exception->getMessage(), 'message' => 'Error processing request'], 500);
         }

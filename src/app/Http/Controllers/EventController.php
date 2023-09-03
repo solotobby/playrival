@@ -28,10 +28,18 @@ class EventController extends Controller
         $user = Auth::user();
         try {
             $events = (new ListService($user->id))->run();
+            $teams = EventTeam::where('user_id', $user->id)->get(); //$event->teams;
+            $list = [];
+            foreach($teams as $team){
+                $list[] = ['id'=> @$team->id, 'team_name'=> @$team->team->name, 'event_name' => @$team->event->name];
+            }
+
+            $data['my_events'] = $events;
+            $data['joinedevents'] = $list;
         } catch (\Exception $exception) {
             return response()->json(['status' => false,  'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
         }
-        return response()->json(['status' => true, 'message' => 'Events List', 'data' =>  $events], 200);
+        return response()->json(['status' => true, 'message' => 'Events List', 'data' =>  $data], 200);
     }
 
     /**
@@ -118,8 +126,8 @@ class EventController extends Controller
 
             if ($event->game_type_id == 1) {
                 $numTeams = count($teams);
-                if ($numTeams < 3) {
-                    return response()->json(['status' => false, 'message' => 'The number of teams in this tornament is not enough for a tornament'], 403);
+                if ($numTeams > 3) {
+                    return response()->json(['status' => false, 'message' => 'This of teams in this tornament is not enough for a tornament'], 403);
                 }
                 $schedule = $this->generateRoundRobinSchedule($teams);
                 $schedule = (new MatchCreateService($schedule ,$event))->run();
