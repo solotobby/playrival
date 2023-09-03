@@ -56,4 +56,8 @@ class User extends Authenticatable
     {
         return $this->hasMany(Team::class)->pluck('id')->toArray();
     }
+
+    public function joinedevent(){
+        return $this->hasMany(EventTeam::class, 'user_id');
+    }
 }
