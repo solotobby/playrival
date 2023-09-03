@@ -219,11 +219,10 @@ class EventController extends Controller
 
 
         } catch (\Exception $exception) {
-            return response()->json(['status' => false,  'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
+            return response()->json(['status' => false,   'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
         }
-
         $data = ["table" =>  $table, "result" =>  $result, "fixture" =>  $fixture];
-        return response()->json(['status' => false,  'data' => $data, 'message' => 'Error processing request'], 200);
+        return response()->json(['status' => true,  'data' => $data, 'message' => 'Info'], 200);
     }
 
 
