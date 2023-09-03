@@ -39,10 +39,8 @@ class EventController extends Controller
     public function store(StoreEventRequest $request)
     {
         $validated = $request->validated();
-        // dd($validated);
         $user = Auth::user();
         try {
-
             $new_event = (new CreateService($validated, $user))->run();
         } catch (\Exception $exception) {
             return response()->json(['status' => false,  'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
@@ -81,7 +79,12 @@ class EventController extends Controller
             // }
 
             $event = Event::where("code", $validated['code'])->first();
+
             $eventUsers = $event->teamsIds()->toArray();
+
+            if($event->teams->count() >= $event->number_of_teams ){
+                return response()->json(['status' => false, 'message' => 'The Number of specified team is complete'], 403);
+            }
 
             if (in_array($user->id, $eventUsers)) {
                 return response()->json(['status' => false, 'message' => 'You are already part of this league'], 403);
