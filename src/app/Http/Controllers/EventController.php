@@ -6,6 +6,7 @@ use App\Http\Requests\Event\JoinEventRequest;
 use App\Http\Requests\StoreEventRequest;
 use App\Http\Requests\UpdateEventRequest;
 use App\Models\Event;
+use App\Models\EventTeam;
 use App\Models\Matches;
 use App\Models\Team;
 use App\Models\User;
@@ -53,13 +54,18 @@ class EventController extends Controller
     public function teams($id)
     {
         try {
-            $event = Event::with('teams')->findorfail($id);
-            $teams = $event->teams;
+            
+            //$event = Event::with('teams')->findorfail($id); // 
+            $teams = EventTeam::where('event_id', $id)->get(); //$event->teams;
+            $list = [];
+            foreach($teams as $team){
+                $list[] = ['team_name'=> $team->team->name, 'id' => $team->team->id];
+            }
         } catch (\Exception $exception) {
             return response()->json(['status' => false,  'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
         }
 
-        return $teams;
+        return $list;
     }
 
     public function join(JoinEventRequest $request)
