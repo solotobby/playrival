@@ -34,6 +34,7 @@ class CreateService implements BaseServiceInterface
                 'is_owner_participate' => $this->data['is_owner_participate'],
                 'banner' => $this->data['banner'],
                 'number_of_teams' => $this->data['number_of_teams'],
+                'is_private' => $this->data['is_private']
             ]);
             return $new_post;
         });

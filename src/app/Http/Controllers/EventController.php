@@ -6,6 +6,7 @@ use App\Http\Requests\Event\JoinEventRequest;
 use App\Http\Requests\StoreEventRequest;
 use App\Http\Requests\UpdateEventRequest;
 use App\Models\Event;
+use App\Models\EventTeam;
 use App\Models\Matches;
 use App\Models\Team;
 use App\Models\User;
@@ -14,6 +15,7 @@ use App\Services\Event\JoinService;
 use App\Services\Event\ListService;
 use App\Services\Match\CreateService as MatchCreateService;
 use GuzzleHttp\Promise\Create;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class EventController extends Controller
@@ -38,10 +40,8 @@ class EventController extends Controller
     public function store(StoreEventRequest $request)
     {
         $validated = $request->validated();
-        // dd($validated);
         $user = Auth::user();
         try {
-
             $new_event = (new CreateService($validated, $user))->run();
         } catch (\Exception $exception) {
             return response()->json(['status' => false,  'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
@@ -53,13 +53,18 @@ class EventController extends Controller
     public function teams($id)
     {
         try {
-            $event = Event::with('teams')->findorfail($id);
-            $teams = $event->teams;
+            
+            //$event = Event::with('teams')->findorfail($id); // 
+            $teams = EventTeam::where('event_id', $id)->get(); //$event->teams;
+            $list = [];
+            foreach($teams as $team){
+                $list[] = ['team_name'=> $team->team->name, 'id' => $team->team->id];
+            }
         } catch (\Exception $exception) {
             return response()->json(['status' => false,  'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
         }
 
-        return $teams;
+        return $list;
     }
 
     public function join(JoinEventRequest $request)
@@ -75,7 +80,12 @@ class EventController extends Controller
             // }
 
             $event = Event::where("code", $validated['code'])->first();
+
             $eventUsers = $event->teamsIds()->toArray();
+
+            if($event->teams->count() >= $event->number_of_teams ){
+                return response()->json(['status' => false, 'message' => 'The Number of specified team is complete'], 403);
+            }
 
             if (in_array($user->id, $eventUsers)) {
                 return response()->json(['status' => false, 'message' => 'You are already part of this league'], 403);
@@ -213,11 +223,10 @@ class EventController extends Controller
 
 
         } catch (\Exception $exception) {
-            return response()->json(['status' => false,  'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
+            return response()->json(['status' => false,   'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
         }
-
         $data = ["table" =>  $table, "result" =>  $result, "fixture" =>  $fixture];
-        return response()->json(['status' => false,  'data' => $data, 'message' => 'Error processing request'], 200);
+        return response()->json(['status' => true,  'data' => $data, 'message' => 'Info'], 200);
     }
 
 
@@ -365,6 +374,29 @@ class EventController extends Controller
         }
         //  dd( $ready);
         return true;
+    }
+
+    public function search(Request $request){
+        $validated = $request->validate([
+            'type_id' => 'required|numeric',
+            'name' => 'required|string',
+        ]);
+      
+        try{
+            $events = Event::where([
+                [function ($query) use ($validated) {
+                    
+                        $query->where('is_private', false)
+                            ->where('game_type_id', 'LIKE', '%' . $validated['type_id'] . '%')
+                            ->where('name', 'LIKE', '%' . $validated['name'] . '%')
+                            ->get();
+                    
+                }]
+            ])->get();
+        }catch (\Exception $exception) {
+            return response()->json(['status' => false,   'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
+        }
+        return response()->json(['status' => true,  'data' => $events, 'message' => 'Search result'], 200);
     }
 
 }

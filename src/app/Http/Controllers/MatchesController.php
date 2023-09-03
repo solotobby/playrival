@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreMatchesRequest;
 use App\Http\Requests\UpdateMatchesRequest;
+use App\Models\Event;
 use App\Models\Matches;
+use Illuminate\Support\Facades\Auth;
 
 class MatchesController extends Controller
 {
@@ -16,7 +18,9 @@ class MatchesController extends Controller
         try{
             
             $matches = [];
-            $matches =  Matches::with(['event'])->orderBy('created_at', 'asc')->get();
+            $user = Auth::user();
+            $myevents = Event::where('user_id', $user->id)->get('id');
+            $matches = Matches::with(['event'])->whereIn('event_id', $myevents)->orderBy('created_at', 'asc')->get();
 
         }catch(\Exception $exception) {
             return response()->json(['status' => false,  'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);

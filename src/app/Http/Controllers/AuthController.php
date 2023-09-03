@@ -73,17 +73,20 @@ class AuthController extends Controller
 
     public function update(Request $request){
         $validated = $request->validate([
-            'username' => 'required|unique:users|max:255',
-            'phone' => 'required|string|size:13|unique:users',
+            'name' => 'required|unique:teams|max:255',
+            // 'phone' => 'required|string|size:13|unique:users',
         ]);
 
         try{
-            $user = Auth::user();
-            $user = User::where('id', $user->id)->first();
-            $user->username = $validated['username'];
-            $user->phone = $validated['phone'];
-            $user->save();
-            return response()->json(['status' => true, 'data' => $user,  'message' => 'Profile updated successfully'], 201);
+             $user = Auth::user();
+             $team = Team::where('user_id', $user->id)->first();
+             $team->name = $validated['name'];
+             $team->save();
+            // $user = User::where('id', $user->id)->first();
+            // $user->username = $validated['username'];
+            // $user->phone = $validated['phone'];
+            // $user->save();
+            return response()->json(['status' => true, 'data' => $team,  'message' => 'Bio updated successfully'], 201);
         }catch(Exception $exception){
             return response()->json(['status' => false,  'error'=>$exception->getMessage(), 'message' => 'Error processing request'], 500);
         }

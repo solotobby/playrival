@@ -30,6 +30,7 @@ class StoreEventRequest extends FormRequest
             'banner' => 'required|string',
             'number_of_teams' => 'required|numeric',
             'is_owner_participate'=>'required|boolean',
+            'is_private'=>'required|boolean',
             'team_id' => 'required_if:is_owner_participate,==,true|nullable|numeric|exists:teams,id',
         ];
     }
