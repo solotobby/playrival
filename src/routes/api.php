@@ -35,6 +35,7 @@ Route::prefix('tornament')->middleware(['auth:api', 'cors'])->group(function () 
     Route::get('/{id}/start', [EventController::class,'start'])->name('start.tornament');
     Route::get('/{id}/teams', [EventController::class,'teams'])->name('start.tornament');
     Route::get('/{id}/info', [EventController::class,'info'])->name('info.tornament');
+    Route::post('search', [EventController::class,'search'])->name('search');
 });
 
 
