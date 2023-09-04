@@ -23,7 +23,7 @@ Route::group(['namespace' => 'auth'], function () {
 });
 
 
-Route::middleware(['auth:api', 'cors'])->group(function () {
+Route::middleware(['auth:api'])->group(function () {
     Route::post('/update',  [AuthController::class,'update']);
     Route::post('/change/password',  [AuthController::class,'changePassword']); 
     Route::get('/logout',  [AuthController::class,'logout']); 
