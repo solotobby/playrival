@@ -136,7 +136,7 @@ class EventController extends Controller
             if ($event->game_type_id == 1) {
                 $numTeams = count($teams);
                 if ($numTeams < 3) {
-                    return response()->json(['status' => false, 'message' => 'This of teams in this tornament is not enough for a tornament'], 403);
+                    return response()->json(['status' => false, 'message' => 'The number of teams in this tornament is not enough for a tornament'], 403);
                 }
                 $schedule = $this->generateRoundRobinSchedule($teams);
                 $schedule = (new MatchCreateService($schedule ,$event))->run();
@@ -147,7 +147,7 @@ class EventController extends Controller
                  // Ensure the number of teams is a power of 2
                     $numTeams = count($teams);
                     if (!($numTeams && (($numTeams & ($numTeams - 1)) == 0))) {
-                        return response()->json(['status' => false, 'message' => 'This of teams in this tornament is not enough for a tornament'], 403);
+                        return response()->json(['status' => false, 'message' => 'The number of teams in this tornament is not enough for a tornament'], 403);
                     }
                 $res = $this->handleKnockOutTornament($teams,  $event);
                 if($res->status){
