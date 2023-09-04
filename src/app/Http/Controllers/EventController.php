@@ -150,15 +150,15 @@ class EventController extends Controller
                         return response()->json(['status' => false, 'message' => 'The number of teams in this tornament is not enough for a tornament'], 403);
                     }
                 $res = $this->handleKnockOutTornament($teams,  $event);
-                if($res->status){
-                 if($res->teams == 2){
-                    $event->is_start=true;
-                    $event->save();
-                 }
+                // if($res->status){
+                //  if($res->teams == 2){
+                //     $event->is_start=true;
+                //     $event->save();
+                //  }
                 
-                }else{
-                    return response()->json(['status' => false,   'message' => $res->message], 500);
-                }
+                // }else{
+                //     return response()->json(['status' => false,   'message' => $res->message], 500);
+                // }
 
             } else  if ($event->game_type_id == 3) {
 
