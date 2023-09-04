@@ -51,7 +51,7 @@ class EventController extends Controller
         $user = Auth::user();
         try {
             $new_event = (new CreateService($validated, $user))->run();
-            
+
             $team = Team::where('user_id', $user->id)->latest()->get()[0];
             EventTeam::create([
                 'user_id' => $user->id,
@@ -135,7 +135,7 @@ class EventController extends Controller
 
             if ($event->game_type_id == 1) {
                 $numTeams = count($teams);
-                if ($numTeams > 3) {
+                if ($numTeams < 3) {
                     return response()->json(['status' => false, 'message' => 'This of teams in this tornament is not enough for a tornament'], 403);
                 }
                 $schedule = $this->generateRoundRobinSchedule($teams);
