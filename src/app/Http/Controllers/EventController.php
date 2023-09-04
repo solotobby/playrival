@@ -51,6 +51,15 @@ class EventController extends Controller
         $user = Auth::user();
         try {
             $new_event = (new CreateService($validated, $user))->run();
+            
+            $team = Team::where('user_id', $user->id)->latest()->get()[0];
+            EventTeam::create([
+                'user_id' => $user->id,
+                'team_id' =>  $team->id,
+                'event_id' =>    $new_event->id
+            ]);
+
+
         } catch (\Exception $exception) {
             return response()->json(['status' => false,  'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
         }
