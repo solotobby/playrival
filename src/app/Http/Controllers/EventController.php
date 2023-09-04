@@ -31,7 +31,7 @@ class EventController extends Controller
             $teams = EventTeam::where('user_id', $user->id)->get(); //$event->teams;
             $list = [];
             foreach($teams as $team){
-                $list[] = ['id'=> @$team->id, 'team_name'=> @$team->team->name, 'event_name' => @$team->event->name];
+                $list[] = ['id'=> @$team->event_id, 'team_name'=> @$team->team->name, 'event_name' => @$team->event->name];
             }
 
             $data['my_events'] = $events;
@@ -66,7 +66,7 @@ class EventController extends Controller
             $teams = EventTeam::where('event_id', $id)->get(); //$event->teams;
             $list = [];
             foreach($teams as $team){
-                $list[] = ['team_name'=> $team->team->name, 'id' => $team->team->id];
+                $list[] = ['team_name'=> $team->team->name, 'id' => $team->id];
             }
         } catch (\Exception $exception) {
             return response()->json(['status' => false,  'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
