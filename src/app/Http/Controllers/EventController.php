@@ -31,7 +31,7 @@ class EventController extends Controller
             $teams = EventTeam::where('user_id', $user->id)->get(); //$event->teams;
             $list = [];
             foreach($teams as $team){
-                $list[] = ['id'=> @$team->event_id, 'team_name'=> @$team->team->name, 'event_name' => @$team->event->name];
+                $list[] = ['id'=> @$team->event_id, 'team_name'=> @$team->team->name, 'event_name' => @$team->event->name, 'type_id' => @$team->event->game_type_id];
             }
 
             $data['my_events'] = $events;
