@@ -33,7 +33,7 @@ class AuthController extends Controller
             $data['user'] = $registered_user;
             $data['token'] = $token;
 
-            $new_post = Team::create([
+            Team::create([
                 'user_id' => $user->id,
                 'name' => $validated['username'],
                 'logo' => "https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.adidas.com%2Fus%2Fucl-finale-madrid-top-training-ball%2FDN8676.html&psig=AOvVaw0lx5j6WJt7vQY1smEB1oB5&ust=1691932986955000&source=images&cd=vfe&opi=89978449&ved=0CBAQjRxqFwoTCMCUudeb14ADFQAAAAAdAAAAABAH",
