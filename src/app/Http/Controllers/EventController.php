@@ -66,7 +66,7 @@ class EventController extends Controller
             $teams = EventTeam::where('event_id', $id)->get(); //$event->teams;
             $list = [];
             foreach($teams as $team){
-                $list[] = ['team_name'=> $team->team->name, 'id' => $team->team->id];
+                $list[] = ['team_name'=> $team->team->name, 'id' => $team->id];
             }
         } catch (\Exception $exception) {
             return response()->json(['status' => false,  'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
