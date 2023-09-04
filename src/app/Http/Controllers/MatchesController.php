@@ -68,31 +68,30 @@ class MatchesController extends Controller
         $validated = $request->validated();
         try{
             $matches = Matches::where('id', $id)->firstOrFail();
-            $updatedMatch = $matches->update([
+            $matches->update([
                 'home_team_goals' => $validated['home_team_goals'],
                 'away_team_goals' => $validated['away_team_goals'],
                 'is_completed' => $validated['is_completed']
             ]);
 
-            $event = Event::with('teams.team', 'matches')->findorfail($id);
+            $event = Event::with('teams.team', 'matches')->findorfail($validated['event_id']);
             $teams = $event->teams->pluck('team')->toArray();
 
-            if ($event->game_type_id == 2) {
-                // Ensure the number of teams is a power of 2
+            $db_matches = $event->matches;
+            $is_complete = $db_matches->pluck('is_completed')->toArray();
 
-               $res = $this->handleKnockOutTornament($teams,  $event);
-               if($res->status){
-                if($res->teams == 2){
-                   $event->is_start=true;
-                   $event->save();
-                }
-               
-               }else{
-                   return response()->json(['status' => false,   'message' => $res->message], 500);
+            if (!in_array(0,  $is_complete)){
+                if ($event->game_type_id == 2) {
+                    // Ensure the number of teams is a power of 2
+    
+                   $res = $this->handleKnockOutTornament($teams,  $event);
+              
                }
+            //    return (object)['status' => false, 'message'=>"All games in the current round is not completed" ];
+            }
 
-           }
-        
+
+            
         }catch(\Exception $exception){
             return response()->json(['status' => false,  'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
         }
@@ -149,11 +148,14 @@ class MatchesController extends Controller
                     array_push($next_round_team, $at);
                 }  
             }
-            
-            $matches = $this->genrateSimpleMatches($next_round_team);
-            $schedule = $this->CreateMatches($matches, $event, "Round ". explode(' ', $last_round)[1] + 1);
-         
-            return (object)['status' => true, 'teams'=> count($next_round_team),  'data' => $schedule];
+
+            if(count($next_round_team) > 1 ){
+                $matches = $this->genrateSimpleMatches($next_round_team);
+                $schedule = $this->CreateMatches($matches, $event, "Round ". explode(' ', $last_round)[1] + 1);
+                
+            }
+            return true;
+            // return (object)['status' => true, 'teams'=> count($next_round_team),  'data' => $schedule];
         }
     }
     public function genrateSimpleMatches($teams){
