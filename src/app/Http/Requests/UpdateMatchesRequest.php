@@ -24,6 +24,7 @@ class UpdateMatchesRequest extends FormRequest
         return [
             'away_team_goals' => 'required|numeric',
             'home_team_goals' => 'required|numeric',
+            'event_id' => 'required|numeric',
             'is_completed' => 'required|numeric',
         ];
     }
