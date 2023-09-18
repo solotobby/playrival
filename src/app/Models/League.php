@@ -5,9 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Team extends Model
+class League extends Model
 {
     use HasFactory;
-
-    protected $fillable = ['user_id', 'name', 'country_id', 'team_type', "logo"];
+    protected $fillable = ['country_id', 'name', 'logo'];
 }
+

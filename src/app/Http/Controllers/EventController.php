@@ -92,13 +92,16 @@ class EventController extends Controller
        // dd($user);
 
         try {
-            // if (!in_array($validated['team_id'], $user->userTeamsIds())) {
-            //     return response()->json(['status' => false, 'message' => 'You are do not own this team'], 403);
-            // }
 
             $event = Event::where("code", $validated['code'])->first();
+            $team = Team::findorfail($validated['team_id']);
 
-            $eventUsers = $event->teamsIds()->toArray();
+           // dd($team);
+
+            $eventTeams = $event->teamsIds()->toArray();
+
+            $eventUsers = $event->userIds()->toArray();
+
 
             if($event->teams->count() >= $event->number_of_teams ){
                 return response()->json(['status' => false, 'message' => 'The Number of specified team is complete'], 403);
@@ -107,7 +110,12 @@ class EventController extends Controller
             if (in_array($user->id, $eventUsers)) {
                 return response()->json(['status' => false, 'message' => 'You are already part of this league'], 403);
             }
-            $team = Team::where('user_id', $user->id)->latest()->get()[0];
+
+            if (in_array($team->id, $eventTeams)) {
+                return response()->json(['status' => false, 'message' => 'This Team already part of this league select a different'], 403);
+            }
+
+        
 
            // $team = Team::findorfail($validated['team_id']);
             $new_event = (new JoinService($event, $team, $user))->run();

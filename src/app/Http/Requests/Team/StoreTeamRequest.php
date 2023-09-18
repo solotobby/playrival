@@ -24,6 +24,7 @@ class StoreTeamRequest extends FormRequest
         return [
             'name' => 'required|string',
             'logo' => 'required|string',
+            'country_id'=> 'required|numeric|exists:countries,id',
             'team_type'=>'required|numeric',
            
         ];

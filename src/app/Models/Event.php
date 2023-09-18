@@ -22,6 +22,11 @@ class Event extends Model
 
     public function teamsIds()
     {
+        return $this->teams()->pluck('team_id');
+    }
+
+    public function userIds()
+    {
         return $this->teams()->pluck('user_id');
     }
     
