@@ -52,13 +52,11 @@ class EventController extends Controller
         try {
             $new_event = (new CreateService($validated, $user))->run();
 
-            $team = Team::where('user_id', $user->id)->latest()->get()[0];
             EventTeam::create([
                 'user_id' => $user->id,
-                'team_id' =>  $team->id,
-                'event_id' =>    $new_event->id
+                'team_id'=> $validated['team_id'],
+                'event_id' => $new_event->id
             ]);
-
 
         } catch (\Exception $exception) {
             return response()->json(['status' => false,  'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
@@ -82,6 +80,24 @@ class EventController extends Controller
         }
 
         return $list;
+    }
+    public function getEventByCode(Request $request){
+        $validated = $request->validate([
+            'code' => 'required|max:255',
+        ]);
+       
+        try {
+            $event = Event::where("code", $validated['code'])->first();
+            $teams = EventTeam::with('team')->where('event_id', $event->id)->get()->pluck('team'); 
+
+            $event['teams']= $teams;
+
+        } catch (\Exception $exception) {
+            return response()->json(['status' => false,  'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
+        }
+
+        return response()->json(['status' => true, 'message' => 'Get Event by Code', 'data' =>  $event], 200);
+
     }
 
     public function join(JoinEventRequest $request)

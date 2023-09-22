@@ -10,4 +10,9 @@ class Country extends Model
     use HasFactory;
     
     protected $fillable = ['name','logo'];
+
+    public function teams()
+    {
+        return $this->hasMany(Team::class);
+    }
 }

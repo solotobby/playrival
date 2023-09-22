@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Team\StoreTeamRequest;
 use App\Http\Requests\Team\UpdateTeamRequest;
+use App\Models\Country;
 use App\Models\Team;
 use App\Services\Team\CreateService;
 use App\Services\Team\ListService;
@@ -42,6 +43,16 @@ class TeamController extends Controller
 
         return response()->json(['status' => true, 'message' => 'New Event created', 'data' =>  $new_event], 201);
        
+    }
+
+    public function getTeamsByCountry($id){
+       
+        try{
+            $country= Country::with('teams')->findorFail($id);
+         } catch (\Exception $exception) {
+             return response()->json(['status' => false,  'error'=>$exception->getMessage(), 'message' => 'Error processing request'], 500);
+         }
+         return response()->json(['status' => true, 'message' => 'Events List', 'data' => $country->teams], 200);
     }
 
     /**
