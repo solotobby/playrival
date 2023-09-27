@@ -21,12 +21,7 @@ class CreateService implements BaseServiceInterface
     public function run()
     {
         return \DB::transaction(function () {
-            $new_post = Team::create([
-                'user_id' => $this->user->id,
-                'name' => $this->data['name'],
-                'logo' => $this->data['logo'],
-                'team_type' => $this->data['team_type'],
-            ]);
+            $new_post = Team::create($this->data);
             return $new_post;
         });
     }

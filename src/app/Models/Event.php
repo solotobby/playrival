@@ -9,7 +9,7 @@ class Event extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'name', 'banner', 'is_start', 'game_type_id', 'is_owner_participate','is_home_away', 'code', 'number_of_teams', 'start_date', 'end_date', 'is_private'];
+    protected $fillable = ['user_id', 'name', 'banner', 'is_start', 'game_type_id', 'is_owner_participate','is_home_away', 'code', 'number_of_teams', 'start_date', 'end_date', 'country_id','league_id', 'is_private'];
 
     // protected $appends = [
     //     'teams'
@@ -21,6 +21,11 @@ class Event extends Model
     }
 
     public function teamsIds()
+    {
+        return $this->teams()->pluck('team_id');
+    }
+
+    public function userIds()
     {
         return $this->teams()->pluck('user_id');
     }

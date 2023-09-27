@@ -30,7 +30,10 @@ class StoreEventRequest extends FormRequest
             'banner' => 'required|string',
             'number_of_teams' => 'required|numeric',
             'is_owner_participate'=>'required|boolean',
-            'is_private'=>'required|boolean'
+            'is_private'=>'required|boolean',
+            'country_id'=> 'required|numeric|exists:countries,id',
+            'league_id'=> 'required|numeric|exists:leagues,id',
+            'team_id'=> 'required|numeric|exists:teams,id'
         ];
     }
 }

@@ -7,18 +7,15 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * * Run the migrations.  php artisan migrate --path=/database/migrations/2023_08_09_214405_create_teams_table.php
-     * 
-     *  * * Run the migrations.  php artisan migrate:refresh --path=/database/migrations/2023_08_09_214405_create_teams_table.php
+     * Run the migrations.
+     * php artisan migrate:refresh --path=/database/migrations/2023_09_17_121002_create_countries_table.php
      */
     public function up(): void
     {
-        Schema::create('teams', function (Blueprint $table) {
+        Schema::create('countries', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('country_id');
             $table->string('name');
             $table->text('logo')->nullable();
-            $table->string('team_type')->nullable();
             $table->timestamps();
         });
     }
@@ -28,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('teams');
+        Schema::dropIfExists('countries');
     }
 };
