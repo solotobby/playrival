@@ -19,7 +19,7 @@ class ListService implements BaseServiceInterface
     public function run()
     {
         if ($this->id) {
-            return Event::where('user_id', $this->id)->latest()->get();
+            return Event::where('user_id', $this->id)->where('is_deleted', 0)->where('is_archive', 0)->latest()->get();
         }
         return [];
     }

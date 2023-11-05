@@ -41,6 +41,13 @@ Route::prefix('tornament')->middleware(['auth:api'])->group(function () {
     Route::get('/{id}/teams', [EventController::class,'teams'])->name('start.tornament');
     Route::get('/{id}/info', [EventController::class,'info'])->name('info.tornament');
     Route::post('search', [EventController::class,'search'])->name('search');
+    Route::get('/flag/{flag?}',[EventController::class,'getFlag'])->name('search');
+    Route::get('/{id}/delete', [EventController::class,'delete'])->name('start.delete');
+    Route::get('/{id}/archive', [EventController::class,'archive'])->name('start.archive');
+    Route::get('/{id}/winner', [EventController::class,'winner'])->name('winner.tornament');
+    Route::get('/dashboard', [EventController::class,'dashboard'])->name('dashboard.tornament');
+    
+
 });
 
 

@@ -13,6 +13,9 @@ return new class extends Migration
     {
         Schema::table('events', function (Blueprint $table) {
             $table->boolean('is_private')->default(false);
+            $table->boolean('is_archive')->default(false);
+            $table->boolean('is_deleted')->default(false);
+
         });
     }
 
@@ -23,6 +26,8 @@ return new class extends Migration
     {
         Schema::table('events', function (Blueprint $table) {
             $table->dropColumn(['is_private']);
+            $table->dropColumn(['is_archive']);
+            $table->dropColumn(['is_deleted']);
         });
     }
 };

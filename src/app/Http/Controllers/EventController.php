@@ -105,17 +105,27 @@ class EventController extends Controller
         $validated = $request->validated();
         $user = Auth::user();
 
-       // dd($user);
+      
 
         try {
 
             $event = Event::where("code", $validated['code'])->first();
             $team = Team::findorfail($validated['team_id']);
 
-           // dd($team);
+            if($team ->team_type !=1 ){
+                return response()->json(['status' => false, 'message' => 'This team can not be use to join the any events'], 403);
+            }
+
+            $data_team = [
+                'name' =>  $team->name . "-" .substr( $user->username, 0, 3),
+                'team_type' => 2,
+                'country_id' => $team->country_id,
+                'logo' =>  $team->logo,
+            ];
+            $newTeams= Team::create($data_team);
+          
 
             $eventTeams = $event->teamsIds()->toArray();
-
             $eventUsers = $event->userIds()->toArray();
 
 
@@ -131,10 +141,7 @@ class EventController extends Controller
                 return response()->json(['status' => false, 'message' => 'This Team already part of this league select a different'], 403);
             }
 
-        
-
-           // $team = Team::findorfail($validated['team_id']);
-            $new_event = (new JoinService($event, $team, $user))->run();
+            $new_event = (new JoinService($event,  $newTeams, $user))->run();
 
             return $new_event;
         } catch (\Exception $exception) {
@@ -242,9 +249,10 @@ class EventController extends Controller
 
         $result = [];
         $fixture = [];
-
+        $winner = null;
+      
         try {
-            $event = Event::with('matches')->findorfail($id);
+            $event = Event::with('matches', 'teams')->findorfail($id);
             $matches = $event->matches;
 
             foreach ($matches as $match) {
@@ -257,8 +265,30 @@ class EventController extends Controller
 
             if ($event->game_type_id == 1) {
                 $table = $this->generateLeagueTable($matches);
+                if(count($table)){
+                    $winner = $table[0];
+                }
             } else  if ($event->game_type_id == 2) {
                 $table = $matches->groupBy('tag');
+                $keys=[];
+
+                foreach ($table as $key => $value) {
+                    array_push($keys, $key);
+                }
+
+                $number = count($event->teams);
+                if($this->isPowerOf2($number)) {
+                    $exponent = $this->findExponentOf2($number);
+
+                    if(in_array("Round " .$exponent, $keys)){
+                        $lastMatch= $table["Round " .$exponent][0];
+                       // dd( $lastMatch);
+                        $winner = [
+                            'team' =>  $lastMatch->home_team_goals > $lastMatch->away_team_goals ?  $lastMatch->home_team :  $lastMatch->away_team,
+                            'team_id' =>  $lastMatch->home_team_goals > $lastMatch->away_team_goals ?  $lastMatch->home_team_id :  $lastMatch->away_team_id,
+                        ];
+                    } 
+                }
 
             }
 
@@ -266,8 +296,25 @@ class EventController extends Controller
         } catch (\Exception $exception) {
             return response()->json(['status' => false,   'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
         }
-        $data = ["table" =>  $table, "result" =>  $result, "fixture" =>  $fixture];
+        $data = [ "winner" =>  $winner,  "table" =>  $table, "result" =>  $result, "fixture" =>  $fixture];
         return response()->json(['status' => true,  'data' => $data, 'message' => 'Info'], 200);
+    }
+
+   public function isPowerOf2($num) {
+        return ($num & ($num - 1)) === 0 && $num > 0;
+    }
+    
+    public function findExponentOf2($num) {
+        if ($this->isPowerOf2($num)) {
+            $exponent = 0;
+            while ($num > 1) {
+                $num = $num >> 1; // Right shift by 1 (equivalent to dividing by 2)
+                $exponent++;
+            }
+            return $exponent;
+        } else {
+            return null; // Not a power of 2
+        }
     }
 
 
@@ -275,8 +322,9 @@ class EventController extends Controller
     {
         // Initialize an empty array to hold team data
         $teams = [];
-
+        $teamStats = [];
         // Loop through the matches
+       // dd($matches);
         foreach ($matches as $match) {
             // Determine the home and away teams
             $homeTeam = $match->home_team;
@@ -289,39 +337,82 @@ class EventController extends Controller
             // Determine if the match is a result or a fixture
             $status = $match->is_completed;
 
+            if (!isset($teamStats[$homeTeam])) {
+                $teamStats[$homeTeam] = [
+                    'team' => $homeTeam,
+                    'team_id' => $match->home_team_id,
+                    'Pl' => 0,
+                    'W' => 0,
+                    'D' => 0,
+                    'L' => 0,
+                    'GF' => 0,
+                    'GA' => 0,
+                    'GD' => 0,
+                    'Pts' => 0,
+                ];
+            }
+            if (!isset($teamStats[$awayTeam])) {
+                $teamStats[$awayTeam] = [
+                    'team' => $awayTeam,
+                    'team_id' => $match->away_team_id,
+                    'Pl' => 0,
+                    'W' => 0,
+                    'D' => 0,
+                    'L' => 0,
+                    'GF' => 0,
+                    'GA' => 0,
+                    'GD' => 0,
+                    'Pts' => 0,
+                ];
+            }
+
             // Update team data based on match result
             if ($status) {
-                if (!isset($teams[$homeTeam])) {
-                    $teams[$homeTeam] = new Team(['name' => $homeTeam]);
-                }
-                if (!isset($teams[$awayTeam])) {
-                    $teams[$awayTeam] = new Team(['name' => $awayTeam]);
-                }
+                $homeGoals = $match->home_team_goals;
+                $awayGoals = $match->away_team_goals;
+    
+                $teamStats[$homeTeam]['Pl']++;
+                $teamStats[$awayTeam]['Pl']++;
+                //Goals
+                $teamStats[$homeTeam]['GF'] += $homeGoals;
+                $teamStats[$homeTeam]['GA'] += $awayGoals;
 
-                // Update team statistics
-                $teams[$homeTeam]->goals_for += $homeGoals;
-                $teams[$homeTeam]->goals_against += $awayGoals;
-                $teams[$awayTeam]->goals_for += $awayGoals;
-                $teams[$awayTeam]->goals_against += $homeGoals;
-
-                // Update points based on match result (you'll need to define your points rules)
+                $teamStats[$awayTeam]['GF'] += $awayGoals;
+                $teamStats[$awayTeam]['GA'] += $homeGoals;
+    
                 if ($homeGoals > $awayGoals) {
-                    $teams[$homeTeam]->points += 3;
+                    $teamStats[$homeTeam]['W']++;
+                    $teamStats[$awayTeam]['L']++;
+                    $teamStats[$homeTeam]['Pts'] +=3;
                 } elseif ($homeGoals < $awayGoals) {
-                    $teams[$awayTeam]->points += 3;
+                    $teamStats[$awayTeam]['W']++;
+                    $teamStats[$homeTeam]['L']++;
+                    $teamStats[$awayTeam]['Pts'] +=3;
                 } else {
-                    $teams[$homeTeam]->points += 1;
-                    $teams[$awayTeam]->points += 1;
+                    $teamStats[$homeTeam]['D']++;
+                    $teamStats[$awayTeam]['D']++;
+                    $teamStats[$awayTeam]['Pts'] +=1;
+                    $teamStats[$homeTeam]['Pts'] +=1;
+
                 }
+               
             }
         }
 
-        // Sort teams based on points and other criteria (e.g., goal difference)
+        foreach ($teamStats as &$teamStat) {
+            $teamStat['GD'] = $teamStat['GF'] - $teamStat['GA'];
+           // $teamStat['PT'] = $teamStat['GW'] * 3 + $teamStat['GD'];
+        }
+      
+        foreach ($teamStats as $key => $value) {
+            array_push($teams, $value);
+        }
+
         usort($teams, function ($a, $b) {
-            if ($a->points === $b->points) {
-                return ($b->goals_for - $b->goals_against) - ($a->goals_for - $a->goals_against);
+            if ($a['Pts'] === $b['Pts']) {
+                return ($b['GA'] - $b['GF']) - ($a['GF'] - $a['GA']);
             }
-            return $b->points - $a->points;
+            return $b['Pts'] - $a['Pts'];
         });
 
         return $teams;
@@ -440,4 +531,283 @@ class EventController extends Controller
         return response()->json(['status' => true,  'data' => $events, 'message' => 'Search result'], 200);
     }
 
+    /**
+     * Display a listing of the resource.
+     */
+    public function getFlag($flag= null)
+    {
+
+        $user = Auth::user();
+        try {
+
+            if($flag == "deleted"){
+                $events = Event::where('user_id', $user->id)
+                ->where('is_deleted', 1)
+                ->latest()->get();
+            }
+            if($flag == "archived"){
+                $events = Event::where('user_id', $user->id)
+                ->where('is_archive', 1)
+                ->latest()->get();
+            }
+       
+            $data['my_events'] = $events;
+        } catch (\Exception $exception) {
+            return response()->json(['status' => false,  'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
+        }
+        return response()->json(['status' => true, 'message' => 'List of '. $flag .'Events', 'data' =>  $data], 200);
+    }
+
+
+    public function delete($id)
+    {
+        try {
+            $event = Event::findorfail($id);
+          
+            if($event->is_deleted){
+                return response()->json(['status' => false, 'message' => 'This has already been deleted'], 403);
+            }
+
+            $event->is_deleted=true;
+            $event->save();
+
+        } catch (\Exception $exception) {
+            return response()->json(['status' => false,  'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
+        }
+
+        return response()->json(['status' => true,  'message' => 'Deleted'], 200);
+    }
+
+    public function archive($id)
+    {
+        try {
+            $event = Event::findorfail($id);
+          
+            if($event->is_archive){
+                return response()->json(['status' => false, 'message' => 'This has already been archived'], 403);
+            }
+
+            $event->is_archive=true;
+            $event->save();
+        } catch (\Exception $exception) {
+            return response()->json(['status' => false,  'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
+        }
+
+        return response()->json(['status' => true,  'message' => 'Archived'], 200);
+    }
+
+    public function winner($id)
+    {
+
+        $result = [];
+        $fixture = [];
+        $winner = null;
+      
+        try {
+            $event = Event::with('matches', 'teams')->findorfail($id);
+            $matches = $event->matches;
+
+            foreach ($matches as $match) {
+                if ($match->is_completed) {
+                    array_push($result, $match);
+                } else {
+                    array_push($fixture, $match);
+                }
+            }
+
+            if ($event->game_type_id == 1) {
+                $table = $this->generateLeagueTable($matches);
+                if(count($table)){
+                    $winner = $table[0];
+                }
+            } else  if ($event->game_type_id == 2) {
+                $table = $matches->groupBy('tag');
+                $keys=[];
+
+                foreach ($table as $key => $value) {
+                    array_push($keys, $key);
+                }
+
+                $number = count($event->teams);
+                if($this->isPowerOf2($number)) {
+                    $exponent = $this->findExponentOf2($number);
+
+                    if(in_array("Round " .$exponent, $keys)){
+                        $lastMatch= $table["Round " .$exponent][0];
+                       // dd( $lastMatch);
+                        $winner = [
+                            'team' =>  $lastMatch->home_team_goals > $lastMatch->away_team_goals ?  $lastMatch->home_team :  $lastMatch->away_team,
+                            'team_id' =>  $lastMatch->home_team_goals > $lastMatch->away_team_goals ?  $lastMatch->home_team_id :  $lastMatch->away_team_id,
+                        ];
+                    } 
+                }
+
+            }
+
+
+        } catch (\Exception $exception) {
+            return response()->json(['status' => false,   'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
+        }
+        $data = [ "winner" =>  $winner];
+        return response()->json(['status' => true,  'data' => $data, 'message' => 'Info'], 200);
+    }
+   
+    public function dashboard(){
+        $user = Auth::user();
+        $leaques=[];
+        $fixtures=[];
+        try {
+            $user_event = EventTeam::with('team')->where('user_id',  $user->id)->get(); 
+
+            foreach ( $user_event as $value) {
+             $stat= $this->cinfo($value->event_id, $value->team_id);
+             if($stat){
+                array_push($leaques,  $stat);
+             }
+          
+            }
+
+            foreach ( $user_event as $value) {
+                $fix= $this->cfixture($value->event_id, $value->team_id);
+                if($fix){
+                    $mergedArray = array_merge($fixtures,  $fix);
+                    $fixtures= $mergedArray;
+                }
+
+             
+               }
+
+             //  dd($fixtures);
+          
+        } catch (\Exception $exception) {
+            return response()->json(['status' => false,  'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
+        }
+        $data = ["Stats" =>  $leaques, "fixture" => array_slice( $fixtures, 0, 3) ];
+        return response()->json(['status' => true,  'data' => $data, 'message' => 'Recent Stats'], 200);
+    }
+
+
+    public function cinfo($id, $team)
+    {
+
+        $result = [];
+        $fixture = [];
+        $winner = null;
+      
+        try {
+            $event = Event::with('matches', 'teams')->findorfail($id);
+            $matches = $event->matches;
+
+            foreach ($matches as $match) {
+                if ($match->is_completed) {
+                    array_push($result, $match);
+                } else {
+                    array_push($fixture, $match);
+                }
+            }
+
+            if ($event->game_type_id == 1) {
+                $table = $this->generateLeagueTable($matches);
+                $pos = 0;
+                if(count($table)>0){
+
+                    foreach ($table as $value) {
+                        $pos++;
+                      if( $value['team_id']==  $team){
+                        $winner = [
+                            'pos' =>  $pos == 1 ? "Winner" :  ($pos == 2 ? "Runner Up" :  $pos),
+                            'Leaque' =>  $event->name,
+                            'type'=> "league"
+                        ];
+                      }
+                    }
+                }
+
+            } else  if ($event->game_type_id == 2) {
+
+                $table = $matches->groupBy('tag');
+                $keys=[];
+                foreach ($table as $key => $value) {
+                    array_push($keys, $key);
+                }
+
+
+                
+               
+                $number = count($event->teams);
+                if($this->isPowerOf2($number)) {
+                    $exponent = $this->findExponentOf2($number);
+                    if(in_array("Round " .$exponent, $keys)){
+                        $lastMatch= $table["Round " .$exponent][0];
+                        if( $lastMatch->home_team_id ==  $team || $lastMatch->away_team_id ==  $team){
+
+                            if($lastMatch->home_team_id ==  $team) {
+                                $hah = $lastMatch->home_team_goals > $lastMatch->away_team_goals ? "Winner" :  "Runner Up";
+                            }else{
+                                $hah = $lastMatch->away_team_goals > $lastMatch->home_team_goals ? "Winner" :  "Runner Up";
+                            }
+
+                            $winner = [
+                                'pos' =>  $hah,
+                                'Leaque' =>  $event->name,
+                                'type'=> "tornament"
+                            ];
+                        }else{
+                            foreach(array_reverse($keys) as $value){
+                                $preRound = $value;
+                                $MatchInRound= $table[$value];
+                                foreach ($MatchInRound as $match) {
+                                    if( $match->home_team_id ==  $team || $match->away_team_id ==  $team){
+                                        $winner = [
+                                            'pos' =>   $preRound,
+                                            'Leaque' =>  $event->name,
+                                            'type'=> "tornament"
+                                        ];
+                                        break 2;
+                                    }
+                                }
+                           }
+            
+
+                        }
+    
+                    } 
+                }
+
+            }
+
+
+        } catch (\Exception $exception) {
+            return throw($exception);
+        }
+
+        return $winner;
+    }
+
+    public function cfixture($id, $team){
+
+
+        $winner = [];
+              
+
+        try {
+            $event = Event::with('matches', 'teams')->findorfail($id);
+
+            if(count($event->matches) > 0){
+                 foreach ($event->matches as $value) {
+                    if(!$value->is_completed){
+                        $value["name"] =  $event->name;
+                        array_push($winner, $value);
+                    }
+                }
+            }
+            
+          
+        } catch (\Exception $exception) {
+            return throw($exception);
+        }
+
+        return $winner;
+
+    }
 }
