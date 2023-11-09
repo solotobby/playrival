@@ -48,11 +48,12 @@ class TeamController extends Controller
     public function getTeamsByCountry($id){
        
         try{
-            $country= Country::with('teams')->where("team_type", 1)->findorFail($id);
-         } catch (\Exception $exception) {
+            $teams= Team::where("team_type", 1)->where("country_id", $id)->get();
+
+        } catch (\Exception $exception) {
              return response()->json(['status' => false,  'error'=>$exception->getMessage(), 'message' => 'Error processing request'], 500);
          }
-         return response()->json(['status' => true, 'message' => 'Events List', 'data' => $country->teams], 200);
+         return response()->json(['status' => true, 'message' => 'Events List', 'data' => $teams], 200);
     }
 
     /**
