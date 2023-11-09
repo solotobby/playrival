@@ -34,13 +34,15 @@ class CreateService implements BaseServiceInterface
                 'is_owner_participate' => $this->data['is_owner_participate'],
                 'banner' => $this->data['banner'],
                 'number_of_teams' => $this->data['number_of_teams'],
-                'is_private' => $this->data['is_private']
+                'is_private' => $this->data['is_private'],
+                'is_archive' => false,
+                'is_deleted' => false
             ]);
             return $new_post;
         });
     }
 
-
+ 
     public function generateCode($n)
     {
         $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
