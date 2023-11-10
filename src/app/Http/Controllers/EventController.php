@@ -51,10 +51,20 @@ class EventController extends Controller
         $user = Auth::user();
         try {
             $new_event = (new CreateService($validated, $user))->run();
+            $team = Team::findorfail($validated['team_id']);
+
+            $data_team = [
+                'name' =>  $team->name . "-" .substr( $user->username, 0, 3),
+                'team_type' => 2,
+                'country_id' => $team->country_id,
+                'logo' =>  $team->logo,
+            ];
+            
+            $newTeams= Team::create($data_team);
 
             EventTeam::create([
                 'user_id' => $user->id,
-                'team_id'=> $validated['team_id'],
+                'team_id'=> $newTeams->id,
                 'event_id' => $new_event->id
             ]);
 
@@ -111,6 +121,7 @@ class EventController extends Controller
 
             $event = Event::where("code", $validated['code'])->first();
             $team = Team::findorfail($validated['team_id']);
+            
 
             if($team ->team_type !=1 ){
                 return response()->json(['status' => false, 'message' => 'This team can not be use to join the any events'], 403);
