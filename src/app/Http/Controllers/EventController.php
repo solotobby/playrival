@@ -181,7 +181,9 @@ class EventController extends Controller
                     return response()->json(['status' => false, 'message' => 'The number of teams in this tornament is not enough for a tornament'], 403);
                 }
                 $schedule = $this->generateRoundRobinSchedule($teams);
-                $schedule = (new MatchCreateService($schedule ,$event))->run();
+                $schedule = (new MatchCreateService($schedule ,$event, $event->is_home_away, count($teams)-1))->run();
+
+
                 $event->is_start=true;
                 $event->save();
 
@@ -421,7 +423,7 @@ class EventController extends Controller
 
         usort($teams, function ($a, $b) {
             if ($a['Pts'] === $b['Pts']) {
-                return ($b['GA'] - $b['GF']) - ($a['GF'] - $a['GA']);
+                return $b['GD'] - $a['GD'];
             }
             return $b['Pts'] - $a['Pts'];
         });
@@ -726,7 +728,7 @@ class EventController extends Controller
                         $pos++;
                       if( $value['team_id']==  $team){
                         $winner = [
-                            'pos' =>  $pos == 1 ? "Winner" :  ($pos == 2 ? "Runner Up" :  $pos),
+                            'pos' =>  $pos,
                             'Leaque' =>  $event->name,
                             'type'=> "league"
                         ];
@@ -797,18 +799,17 @@ class EventController extends Controller
 
     public function cfixture($id, $team){
 
-
         $winner = [];
-              
-
         try {
             $event = Event::with('matches', 'teams')->findorfail($id);
-
             if(count($event->matches) > 0){
                  foreach ($event->matches as $value) {
                     if(!$value->is_completed){
-                        $value["name"] =  $event->name;
-                        array_push($winner, $value);
+                        if($value->home_team_id==$team || $value->away_team_id==$team ){
+                            $value["name"] =  $event->name;
+                            array_push($winner, $value);
+                        }
+                     
                     }
                 }
             }
