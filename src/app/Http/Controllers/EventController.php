@@ -807,6 +807,7 @@ class EventController extends Controller
                     if(!$value->is_completed){
                         if($value->home_team_id==$team || $value->away_team_id==$team ){
                             $value["name"] =  $event->name;
+                            $value["game_type_id"] =  $event->game_type_id;
                             array_push($winner, $value);
                         }
                      
