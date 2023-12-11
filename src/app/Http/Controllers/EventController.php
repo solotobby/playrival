@@ -676,9 +676,7 @@ class EventController extends Controller
              $stat= $this->cinfo($value->event_id, $value->team_id);
              if($stat){
                 array_push($leaques,  $stat);
-             }
-          
-            }
+             } }
 
             foreach ( $user_event as $value) {
                 $fix= $this->cfixture($value->event_id, $value->team_id);
@@ -686,10 +684,7 @@ class EventController extends Controller
                     $mergedArray = array_merge($fixtures,  $fix);
                     $fixtures= $mergedArray;
                 }
-
-             
-               }
-
+            }
              //  dd($fixtures);
           
         } catch (\Exception $exception) {
@@ -743,9 +738,6 @@ class EventController extends Controller
                 foreach ($table as $key => $value) {
                     array_push($keys, $key);
                 }
-
-
-                
                
                 $number = count($event->teams);
                 if($this->isPowerOf2($number)) {
@@ -808,6 +800,7 @@ class EventController extends Controller
                         if($value->home_team_id==$team || $value->away_team_id==$team ){
                             $value["name"] =  $event->name;
                             $value["game_type_id"] =  $event->game_type_id;
+                            $value['is_started'] = $event->is_start
                             array_push($winner, $value);
                         }
                      
