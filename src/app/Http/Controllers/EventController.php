@@ -669,8 +669,13 @@ class EventController extends Controller
         $user = Auth::user();
         $leaques=[];
         $fixtures=[];
+        $is_started= false;
         try {
+
             $user_event = EventTeam::with('team')->where('user_id',  $user->id)->get(); 
+            if(count( $user_event ) > 0){
+                $is_started= true;
+            }
 
             foreach ( $user_event as $value) {
              $stat= $this->cinfo($value->event_id, $value->team_id);
@@ -690,7 +695,7 @@ class EventController extends Controller
         } catch (\Exception $exception) {
             return response()->json(['status' => false,  'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
         }
-        $data = ["Stats" =>  $leaques, "fixture" => array_slice( $fixtures, 0, 3) ];
+        $data = ["Stats" =>  $leaques, "fixture" => array_slice( $fixtures, 0, 3) , "is_started" =>  $is_started, ];
         return response()->json(['status' => true,  'data' => $data, 'message' => 'Recent Stats'], 200);
     }
 
@@ -800,7 +805,6 @@ class EventController extends Controller
                         if($value->home_team_id==$team || $value->away_team_id==$team ){
                             $value["name"] =  $event->name;
                             $value["game_type_id"] =  $event->game_type_id;
-                            $value['is_started'] = $event->is_start
                             array_push($winner, $value);
                         }
                      
