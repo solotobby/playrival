@@ -669,16 +669,19 @@ class EventController extends Controller
         $user = Auth::user();
         $leaques=[];
         $fixtures=[];
+        $is_started= false;
         try {
+
             $user_event = EventTeam::with('team')->where('user_id',  $user->id)->get(); 
+            if(count( $user_event ) > 0){
+                $is_started= true;
+            }
 
             foreach ( $user_event as $value) {
              $stat= $this->cinfo($value->event_id, $value->team_id);
              if($stat){
                 array_push($leaques,  $stat);
-             }
-          
-            }
+             } }
 
             foreach ( $user_event as $value) {
                 $fix= $this->cfixture($value->event_id, $value->team_id);
@@ -686,16 +689,13 @@ class EventController extends Controller
                     $mergedArray = array_merge($fixtures,  $fix);
                     $fixtures= $mergedArray;
                 }
-
-             
-               }
-
+            }
              //  dd($fixtures);
           
         } catch (\Exception $exception) {
             return response()->json(['status' => false,  'error' => $exception->getMessage(), 'message' => 'Error processing request'], 500);
         }
-        $data = ["Stats" =>  $leaques, "fixture" => array_slice( $fixtures, 0, 3) ];
+        $data = ["Stats" =>  $leaques, "fixture" => array_slice( $fixtures, 0, 3) , "is_started" =>  $is_started, ];
         return response()->json(['status' => true,  'data' => $data, 'message' => 'Recent Stats'], 200);
     }
 
@@ -743,9 +743,6 @@ class EventController extends Controller
                 foreach ($table as $key => $value) {
                     array_push($keys, $key);
                 }
-
-
-                
                
                 $number = count($event->teams);
                 if($this->isPowerOf2($number)) {
