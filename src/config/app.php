@@ -160,7 +160,7 @@ return [
          * Package Service Providers...
          */
         Spatie\Permission\PermissionServiceProvider::class,
-
+        Mailjet\LaravelMailjet\MailjetServiceProvider::class,
         /*
          * Application Service Providers...
          */
@@ -184,7 +184,7 @@ return [
     */
 
     'aliases' => Facade::defaultAliases()->merge([
-        // 'Example' => App\Facades\Example::class,
+        'Mailjet' => Mailjet\LaravelMailjet\Facades\Mailjet::class,
     ])->toArray(),
 
 ];

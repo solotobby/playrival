@@ -5,6 +5,7 @@ use App\Http\Controllers\CountryController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\LeagueController;
 use App\Http\Controllers\MatchesController;
+use App\Http\Controllers\OtpController;
 use App\Http\Controllers\TeamController;
 use App\Models\League;
 use Illuminate\Http\Request;
@@ -23,6 +24,9 @@ use Illuminate\Support\Facades\Route;
 Route::group(['namespace' => 'auth'], function () {
     Route::post('register', [AuthController::class,'register']);
     Route::post('login',  [AuthController::class,'login']);
+    Route::post('forgetpassword',  [OtpController::class,'generatePinForgetPassword']);
+    Route::post('verifycode',  [OtpController::class,'VerifyOTP']);
+    Route::post('resetPassword', [AuthController::class, 'resetPassword']);
 });
 
 

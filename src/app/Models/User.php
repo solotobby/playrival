@@ -7,13 +7,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
 use Laravel\Passport\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
+use Illuminate\Notifications\Notifiable;
+use App\Notifications\ResetPasswordNotification;
+
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, HasRoles;
+    use HasApiTokens, HasFactory, Notifiable, HasRoles, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -60,4 +62,5 @@ class User extends Authenticatable
     public function joinedevent(){
         return $this->hasMany(EventTeam::class, 'user_id');
     }
+
 }
